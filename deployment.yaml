@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-spring-deployment
+spec:
+  replicas: 5  # Change this value to set the number of replicas
+  selector:
+    matchLabels:
+      app: hello-spring
+  template:
+    metadata:
+      labels:
+        app: hello-spring
+    spec:
+      containers:
+      - name: hello-spring-container
+        image: mounabnz/hello-spring:latest
+        ports:
+        - containerPort: 8080
+
