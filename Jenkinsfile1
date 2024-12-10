@@ -1,0 +1,125 @@
+pipeline {
+    agent any
+    tools {
+        jdk 'jdk17'
+        maven 'maven3'
+    }
+    environment {
+        DOCKER_IMAGE = 'jesstg/petclinic:latest' 
+        DOCKER_REGISTRY = 'https://hub.docker.com/' 
+        ARM_SUBSCRIPTION_ID=credentials('azure-subscription-id')
+        RESOURCE_GROUP = 'example-resources' 
+        APP_NAME = 'example-springboot-app'  
+        LOCATION = 'North Europe'  
+        AZURE_WEBAPP_NAME = 'example-springboot-app'  
+        IMAGE_REGISTRY = 'https://registry.hub.docker.com/repository/docker/jesstg/petclinic/general' 
+        DOCKERHUB_CREDENTIALS = 'Dockerhub'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/MounaBnz/hello-spring.git'
+            }
+        }
+
+        stage('Build Application') {
+            steps {
+                script {
+                    sh 'mvn clean package'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    sh 'mvn test'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh 'docker build --no-cache -t ${DOCKER_IMAGE} .'
+                }
+            }
+        }
+
+        // stage('Push Docker Image') {
+        //     steps {
+        //         script {
+        //             sh '''
+        //                 echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+        //                 docker push ${DOCKER_IMAGE}
+        //             '''
+        //         }
+        //     }
+        // }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                        sh '''
+                            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+                            docker push ${DOCKER_IMAGE}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Azure Login') {
+            steps {
+                script {
+                    sh '''
+                        #az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+                        az login --use-device-code
+                        az account set --subscription $ARM_SUBSCRIPTION_ID
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                script {
+                    sh '''
+                        terraform init
+                        terraform plan -var="subscription_id=$ARM_SUBSCRIPTION_ID"
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                script {
+                    sh '''
+                        terraform apply -var="subscription_id=$ARM_SUBSCRIPTION_ID" -auto-approve
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy Docker Image to Azure App Service') {
+            steps {
+                script {withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                    sh '''
+                        az webapp config container set --name $AZURE_WEBAPP_NAME \
+                            --resource-group $RESOURCE_GROUP \
+                            --docker-custom-image-name $DOCKER_IMAGE \
+                            --docker-registry-server-url $DOCKER_REGISTRY \
+                            --docker-registry-server-user $DOCKERHUB_USERNAME \
+                            --docker-registry-server-password $DOCKERHUB_PASSWORD
+                    '''
+                }
+                }
+            }
+        }
+        
+        
+    }
+
+}
