@@ -56,8 +56,8 @@ resource "azurerm_application_insights" "example" {
 # Azure Log Analytics Workspace
 resource "azurerm_log_analytics_workspace" "rg" {
   name                       = "log-analytics"
-  location                   = azurerm_resource_group.rg.location
-  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = azurerm_resource_group.example.location
+  resource_group_name        = azurerm_resource_group.example.name
   sku                        = "PerGB2018"
   retention_in_days          = 30
   tags                       = null
@@ -73,7 +73,7 @@ data "azurerm_monitor_diagnostic_categories" "main" {
 resource "azurerm_monitor_diagnostic_setting" "example" {
   name                       = "webapp-diagnostics"
   target_resource_id         = azurerm_linux_web_app.app.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.rg.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.example.id
   enabled_log {
     category = "AppServiceHTTPLogs"
     retention_policy {
@@ -120,10 +120,10 @@ resource "azurerm_monitor_diagnostic_setting" "example" {
 resource "azurerm_log_analytics_solution" "solutions" {
   for_each              = local.solution_name
   solution_name         = each.key
-  location              = azurerm_resource_group.rg.location
-  resource_group_name   = azurerm_resource_group.rg.name
-  workspace_resource_id = azurerm_log_analytics_workspace.rg.id
-  workspace_name        = azurerm_log_analytics_workspace.rg.name
+  location              = azurerm_resource_group.example.location
+  resource_group_name   = azurerm_resource_group.example.name
+  workspace_resource_id = azurerm_log_analytics_workspace.example.id
+  workspace_name        = azurerm_log_analytics_workspace.example.name
 
   plan {
     publisher = "Microsoft"
@@ -139,7 +139,7 @@ resource "azurerm_log_analytics_solution" "solutions" {
 
 resource "azurerm_monitor_action_group" "monitor" {
   name                = "actiongroup"
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = azurerm_resource_group.example.name
   short_name          = "alert1234"
  email_receiver {
    email_address = "narjes.taghlet@insat.ucar.tn"
@@ -150,7 +150,7 @@ resource "azurerm_monitor_action_group" "monitor" {
 # define criteria
 resource "azurerm_monitor_metric_alert" "metric" {
   name                = "metricalert-webapp"
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = azurerm_resource_group.example.name
   scopes              = [azurerm_linux_web_app.frontwebapp.id]
   description         = "alerts"
   enabled = true
