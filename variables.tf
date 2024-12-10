@@ -16,3 +16,12 @@ variable "DOCKER_REGISTRY_SERVER_PASSWORD" {
    type        = string
   default ="Jess2001@@"
 }
+
+
+variable "alert_email" {
+  description = "The email address to receive alerts"
+  type        = string
+  default ="narjes.taghlet@insat.ucar.tn"
+}
+
+
