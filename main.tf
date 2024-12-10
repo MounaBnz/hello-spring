@@ -73,19 +73,12 @@ resource "azurerm_monitor_diagnostic_setting" "example" {
 
   enabled_log {
     category = "AppServiceHTTPLogs"
-    retention_policy {
-      enabled = true
-      days    = 30
-    }
   }
   enabled_log {
     category = "AppServiceAppLogs"
-    retention_policy {
-      enabled = true
-      days    = 30
-    }
   }
 }
+
 
 # ------------------------------------------------------------
 # Action Group (Email Alerts)
